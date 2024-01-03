@@ -66,9 +66,6 @@ type FileHandle struct {
 	keepPageCache bool // the same value we returned to OpenFile
 }
 
-const MAX_READAHEAD = uint32(400 * 1024 * 1024)
-const READAHEAD_CHUNK = uint32(20 * 1024 * 1024)
-
 // NewFileHandle returns a new file handle for the given `inode` triggered by fuse
 // operation with the given `opMetadata`
 func NewFileHandle(inode *Inode, opMetadata fuseops.OpContext) *FileHandle {
@@ -429,14 +426,14 @@ func (fh *FileHandle) readAhead(offset uint64, needAtLeast int) (err error) {
 		existingReadahead += b.size
 	}
 
-	readAheadAmount := MAX_READAHEAD
+	readAheadAmount := fh.inode.fs.flags.MaxReadAhead * 1024 * 1024
 
-	for readAheadAmount-existingReadahead >= READAHEAD_CHUNK {
+	for readAheadAmount-existingReadahead >= (fh.inode.fs.flags.ReadAheadChunk * 1024 * 1024) {
 		off := offset + uint64(existingReadahead)
 		remaining := fh.inode.Attributes.Size - off
 
 		// only read up to readahead chunk each time
-		size := MinUInt32(readAheadAmount-existingReadahead, READAHEAD_CHUNK)
+		size := MinUInt32(readAheadAmount-existingReadahead, (fh.inode.fs.flags.ReadAheadChunk * 1024 * 1024))
 		// but don't read past the file
 		size = uint32(MinUInt64(uint64(size), remaining))
 
@@ -459,7 +456,7 @@ func (fh *FileHandle) readAhead(offset uint64, needAtLeast int) (err error) {
 			}
 		}
 
-		if size != READAHEAD_CHUNK {
+		if size != (fh.inode.fs.flags.ReadAheadChunk * 1024 * 1024) {
 			// that was the last remaining chunk to readahead
 			break
 		}
@@ -546,7 +543,7 @@ func (fh *FileHandle) readFile(offset int64, buf []byte) (bytesRead int, err err
 		fh.buffers = nil
 	}
 
-	if !fs.flags.Cheap && fh.seqReadAmount >= uint64(READAHEAD_CHUNK) && fh.numOOORead < 3 {
+	if !fs.flags.Cheap && fh.seqReadAmount >= uint64(fh.inode.fs.flags.ReadAheadChunk * 1024 * 1024) && fh.numOOORead < 3 {
 		if fh.reader != nil {
 			fh.inode.logFuse("cutover to the parallel algorithm")
 			fh.reader.Close()

@@ -56,7 +56,12 @@ type FlagStorage struct {
 	DebugS3    bool
 	Foreground bool
 
+	// MPU
 	MPUPartSize uint64
+
+	// Readahead
+	MaxReadAhead   uint32
+	ReadAheadChunk uint32
 }
 
 func (flags *FlagStorage) GetMimeType(fileName string) (retMime *string) {
