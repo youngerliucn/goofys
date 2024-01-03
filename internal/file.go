@@ -187,13 +187,14 @@ func (fh *FileHandle) partSize() uint64 {
 	var size uint64
 
 	if fh.lastPartId < 500 {
-		size = 5 * 1024 * 1024
+		//size = 5 * 1024 * 1024
+		size = fh.inode.fs.flags.MPUPartSize * 1024 * 1024
 	} else if fh.lastPartId < 1000 {
-		size = 25 * 1024 * 1024
+		size = 5 * fh.inode.fs.flags.MPUPartSize * 1024 * 1024
 	} else if fh.lastPartId < 2000 {
-		size = 125 * 1024 * 1024
+		size = 25 * fh.inode.fs.flags.MPUPartSize * 1024 * 1024
 	} else {
-		size = 625 * 1024 * 1024
+		size = 125 * fh.inode.fs.flags.MPUPartSize * 1024 * 1024
 	}
 
 	maxPartSize := fh.cloud.Capabilities().MaxMultipartSize
